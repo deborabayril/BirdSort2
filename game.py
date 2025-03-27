@@ -2,7 +2,7 @@ import pygame
 from pygame.locals import *
 import random
 from search import Estado, bfs, custo_uniforme, gulosa, a_star, heuristica
-#hello débora, tudo bom?#
+
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
 VERMELHO = (255, 0, 0)
