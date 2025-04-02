@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 import random
 from search import Estado, bfs, custo_uniforme, gulosa, a_star, heuristica
+import copy
 
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
@@ -14,6 +15,11 @@ pygame.init()
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Bird Sort 2")
 fonte = pygame.font.Font(None, 36)
+
+estado_jogo = []
+passaro_selecionado = None
+galho_selecionado = None
+histórico_jogadas = []
 
 
 def estado_inicial():
@@ -54,31 +60,58 @@ def resolver_jogo(algoritmo, estado_inicial):
     return None
 
 
+# Função para mover pássaro
+def mover_passaro(destino):
+    global estado_jogo, passaro_selecionado, galho_selecionado
+    if passaro_selecionado and galho_selecionado is not None:
+        origem = galho_selecionado
+        cor_passaro = estado_jogo[origem][-1]  # Get the top bird from the origin branch
+        if movimento_valido(origem, destino):  # Check if the move is valid
+            estado_jogo[destino].append(cor_passaro)  # Add the bird to the destination branch
+            estado_jogo[origem].pop()  # Remove the bird from the origin branch
+            histórico_jogadas.append(copy.deepcopy(estado_jogo))  # Save the move to history
+        passaro_selecionado = None  # Reset selection
+        galho_selecionado = None
+
+
 def rodar_jogo():
-    estado = estado_inicial()
+    global estado_jogo
+    estado_jogo = estado_inicial()
     algoritmo = "bfs"
     rodando = True
     movimentos = []
 
+    posicoes = [(100 + i * 120, 200) for i in range(6)]
+
     while rodando:
-        desenhar_estado(estado)
         for evento in pygame.event.get():
-            if evento.type == QUIT:
+            if evento.type == pygame.QUIT:
                 rodando = False
-            elif evento.type == KEYDOWN:
-                if evento.key == K_r:
-                    resultado = resolver_jogo(algoritmo, estado)
-                    if resultado:
-                        movimentos = []
-                        while resultado.movimento:
-                            movimentos.append(resultado.jogo)
-                            resultado = resultado.movimento  # Volta pelos movimentos
-                        movimentos.reverse()
-        
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                # Check if the user clicked on a branch
+                for i, (galho_x, galho_y) in enumerate(posicoes):
+                    if galho_x < x < galho_x + 250 and galho_y - 40 < y < galho_y + 80:
+                        if passaro_selecionado is None:  # No bird selected yet
+                            if len(estado_jogo[i]) > 0:  # Branch is not empty
+                                passaro_selecionado = (i, len(estado_jogo[i]) - 1)
+                                galho_selecionado = i
+                                print(f"Selecionado pássaro do galho {i}")
+                        else:  # A bird is already selected
+                            mover_passaro(i)  # Try to move the bird to the clicked branch
+                        break
+                else:
+                    # Reset selection if clicked outside branches
+                    passaro_selecionado = None
+                    galho_selecionado = None
+
+        desenhar_estado(estado_jogo)
+
         if movimentos:
-            estado = movimentos.pop(0)  # Exibe um passo por vez
+            estado_jogo = movimentos.pop(0)  # Exibe um passo por vez
             pygame.time.delay(500)
-        
+
     pygame.quit()
+
 
 rodar_jogo()
