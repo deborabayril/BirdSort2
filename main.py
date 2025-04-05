@@ -55,12 +55,14 @@ except Exception as e:
 
 # Estado inicial
 estado_jogo = [
+    
     ["vermelho", "marrom", "azul", "verde"],
     ["azul", "verde", "marrom", "vermelho"],
     ["vermelho", "verde", "amarelo"],
     ["azul", "amarelo", "marrom"],
     ["amarelo"],
     []
+
 ]
 
 histórico_jogadas = [copy.deepcopy(estado_jogo)]
@@ -69,6 +71,8 @@ estrelas = 3
 pausado = False
 passaro_selecionado = None
 galho_selecionado = None
+
+
 
 # Ensure the victory flag is initialized
 vitoria_alcancada = False
@@ -169,8 +173,11 @@ def verificar_vitoria():
             return False
 
     # Verifica se todas as cores possíveis estão agrupadas
+    num_cores, _ = obter_dados_do_estado_inicial(estado_jogo)
     todas_cores = set(imagens_passaros.keys())  # Todas as cores possíveis
-    return set(cores_em_galhos.keys()) == todas_cores
+    return len(cores_em_galhos.keys()) == num_cores
+
+
 
 # Função para calcular estrelas
 def calcular_estrelas():
@@ -311,9 +318,57 @@ def exibir_janela_vitoria(estrelas):
         pygame.display.update()
         clock.tick(30)  # Limit the frame rate for the win window
 
+# Classe para representar o estado do jogo
+class Estado:
+    def __init__(self, jogo, movimento=None, custo=0, heuristica=0):
+        self.jogo = jogo
+        self.movimento = movimento
+        self.custo = custo
+        self.heuristica = heuristica
+
+    def __eq__(self, other):
+        return self.jogo == other.jogo
+
+    def __hash__(self):
+        return hash(str(self.jogo))
+
+# Função para gerar próximos estados
+def gerar_proximos_estados(estado_atual):
+    proximos_estados = []
+    for i, galho_origem in enumerate(estado_atual.jogo):
+        if not galho_origem:
+            continue  # Skip empty branches
+        passaro = galho_origem[-1]  # Get the last bird in the branch
+        for j, galho_destino in enumerate(estado_atual.jogo):
+            if i != j and (len(galho_destino) < 4 and (not galho_destino or galho_destino[-1] == passaro)):
+                novo_estado = [list(g) for g in estado_atual.jogo]
+                novo_estado[i].pop()
+                novo_estado[j].append(passaro)
+                if novo_estado not in proximos_estados:  # Avoid duplicates
+                    proximos_estados.append(Estado(novo_estado, (i, j), estado_atual.custo + 1))
+    return proximos_estados
+
+# Função para obter dados do estado inicial
+def obter_dados_do_estado_inicial(estado_jogo):
+    """
+    Determina o número de cores e o número de pássaros por cor a partir do estado inicial.
+    """
+    cores = {}
+    for galho in estado_jogo:
+        for passaro in galho:
+            if passaro not in cores:
+                cores[passaro] = 0
+            cores[passaro] += 1
+
+    num_cores = len(cores)  # Número de cores únicas
+    passaros_por_cor = list(cores.values())[0] if cores else 0  # Número de pássaros por cor (assume que todas as cores têm o mesmo número de pássaros)
+    return num_cores, passaros_por_cor
+
 # Loop principal do jogo
 # Draw static elements once
 desenhar_elementos_estaticos()
+
+
 
 while rodando:
     for evento in pygame.event.get():
@@ -374,6 +429,8 @@ while rodando:
     # Skip game updates if paused
     if pausado:
         continue
+
+    
 
     # Reset the victory flag when the game state changes
     if not verificar_vitoria():
