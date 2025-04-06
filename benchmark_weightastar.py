@@ -41,7 +41,7 @@ estado_inicial = Estado([
 ])
 
 # Define the weight factor
-w = 1.9  # Adjust the weight factor as needed
+w = 9  # Adjust the weight factor as needed
 
 # Measure Weighted A* Search execution time with the default heuristic
 #medir_tempo_weighted_a_star(estado_inicial, w, heuristica)
