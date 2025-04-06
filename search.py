@@ -2,16 +2,21 @@ from collections import deque
 
 # Definir um estado de jogo
 class Estado:
-    def __init__(self, jogo, movimento=None, custo=0):
+    def __init__(self, jogo, movimento=None, custo=0, profundidade=0, heuristica=0):
         self.jogo = jogo
         self.movimento = movimento
         self.custo = custo
+        self.profundidade = profundidade
+        self.heuristica = heuristica  # Valor heurístico do estado
 
     def __eq__(self, other):
         return self.jogo == other.jogo
 
     def __hash__(self):
         return hash(str(self.jogo))
+
+    def __lt__(self, other):
+        return self.heuristica < other.heuristica
 
 # Definir um estado final correto (por exemplo, todos os galhos ordenados por cor)
 estado_final = [
@@ -26,8 +31,10 @@ estado_final = [
 
 # Função de Heurística (exemplo simples)
 def heuristica(estado):
-    # Exemplo de heurística: número de pássaros fora de lugar
-    return sum(1 for galho in estado for passaro in galho if passaro != sorted(galho)[0])
+    """
+    Exemplo de heurística: número de pássaros fora de lugar.
+    """
+    return sum(1 for galho in estado.jogo for passaro in galho if passaro != galho[0])
 
 # Função para verificar se o estado atual é uma vitória
 def verificar_vitoria(jogo):
@@ -81,82 +88,187 @@ def bfs(inicio):
 
 # Função para gerar os próximos estados possíveis (ações)
 def gerar_proximos_estados(estado_atual):
-    """
-    Gera todos os estados possíveis a partir do estado atual,
-    movendo o último pássaro de um galho para outro.
-    """
     proximos_estados = []
-    jogo_atual = estado_atual.jogo  # Estado atual do jogo
+    jogo_atual = estado_atual.jogo
 
     for i, galho_origem in enumerate(jogo_atual):
         if not galho_origem:
             continue  # Pula galhos vazios
-
-        passaro = galho_origem[-1]  # Pega o último pássaro do galho de origem
-
+        passaro = galho_origem[-1]  # Pega o último pássaro do galho
         for j, galho_destino in enumerate(jogo_atual):
-            if i != j:  # Não pode mover para o mesmo galho
-                # Verifica se o movimento é válido
-                if len(galho_destino) < 4 and (not galho_destino or galho_destino[-1] == passaro):
-                    # Cria uma cópia do estado atual
-                    novo_jogo = [list(g) for g in jogo_atual]
-                    # Move o pássaro
-                    novo_jogo[i].pop()  # Remove o pássaro do galho de origem
-                    novo_jogo[j].append(passaro)  # Adiciona o pássaro ao galho de destino
-
-                    # Cria um novo estado com o movimento realizado
-                    estado_novo = Estado(novo_jogo, movimento=(i, j), custo=estado_atual.custo + 1)
-                    proximos_estados.append(estado_novo)
-
+            if i != j and (len(galho_destino) < 4 and (not galho_destino or galho_destino[-1] == passaro)):
+                novo_jogo = [list(g) for g in jogo_atual]  # Cópia profunda do estado atual
+                novo_jogo[i].pop()  # Remove o pássaro do galho de origem
+                novo_jogo[j].append(passaro)  # Adiciona o pássaro ao galho de destino
+                estado_novo = Estado(novo_jogo, movimento=(i, j), custo=estado_atual.custo + 1, profundidade=estado_atual.profundidade + 1)
+                proximos_estados.append(estado_novo)
     return proximos_estados
 
 
 import heapq
 
 def custo_uniforme(inicio):
+    """
+    Implementação da busca de custo uniforme para encontrar a solução do jogo.
+    """
     fila = []
-    heapq.heappush(fila, inicio)
-    visitados = set()
+    heapq.heappush(fila, inicio)  # Adiciona o estado inicial à fila de prioridade
+    visitados = set()  # Conjunto para rastrear estados visitados
+
     while fila:
-        estado_atual = heapq.heappop(fila)
-        if estado_atual.jogo == estado_final:
-            return estado_atual
+        estado_atual = heapq.heappop(fila)  # Pega o estado com menor custo
+
+        if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
+            return estado_atual  # Retorna o estado vencedor
+
+        visitados.add(estado_atual)  # Marca o estado como visitado
+
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                heapq.heappush(fila, proximo_estado)
+                heapq.heappush(fila, proximo_estado)  # Adiciona o próximo estado à fila
                 visitados.add(proximo_estado)
-    return None
+
+    return None  # Retorna None se nenhuma solução for encontrada
 
 
 # Busca Gulosa
 def gulosa(inicio):
+    """
+    Implementação da busca gulosa para encontrar a solução do jogo.
+    """
     fila = []
-    heapq.heappush(fila, (inicio.heuristica, inicio))  # Fila com a heurística
+    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    heapq.heappush(fila, (inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com a heurística
     visitados = set()
+
     while fila:
-        _, estado_atual = heapq.heappop(fila)
-        if estado_atual.jogo == estado_final:
-            return estado_atual
+        _, estado_atual = heapq.heappop(fila)  # Pega o estado com menor valor heurístico
+
+        if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
+            return estado_atual  # Retorna o estado vencedor
+
+        visitados.add(estado_atual)  # Marca o estado como visitado
+
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                heapq.heappush(fila, (proximo_estado.heuristica, proximo_estado))
-                visitados.add(proximo_estado)
-    return None
+                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                heapq.heappush(fila, (proximo_estado.heuristica, proximo_estado))  # Adiciona à fila
+
+    return None  # Retorna None se nenhuma solução for encontrada
 
 # A* (A Estrela)
 def a_star(inicio):
+    """
+    Implementação da busca A* para encontrar a solução do jogo.
+    """
     fila = []
-    heapq.heappush(fila, inicio)
+    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    heapq.heappush(fila, (inicio.custo + inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com f(n) = g(n) + h(n)
     visitados = set()
+
     while fila:
-        estado_atual = heapq.heappop(fila)
-        if estado_atual.jogo == estado_final:
-            return estado_atual
+        _, estado_atual = heapq.heappop(fila)  # Pega o estado com menor f(n)
+
+        if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
+            return estado_atual  # Retorna o estado vencedor
+
+        visitados.add(estado_atual)  # Marca o estado como visitado
+
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                heapq.heappush(fila, proximo_estado)
-                visitados.add(proximo_estado)
-    return None
+                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                f_n = proximo_estado.custo + proximo_estado.heuristica  # Calcula f(n) = g(n) + h(n)
+                heapq.heappush(fila, (f_n, proximo_estado))  # Adiciona o próximo estado à fila
+
+    return None  # Retorna None se nenhuma solução for encontrada
+
+def weighted_a_star(inicio, w=1.5):
+    """
+    Implementação da busca A* ponderada (Weighted A*) para encontrar a solução do jogo.
+    :param inicio: Estado inicial do jogo.
+    :param w: Peso aplicado à heurística (w >= 1).
+    :return: Estado vencedor ou None se nenhuma solução for encontrada.
+    """
+    fila = []
+    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    heapq.heappush(fila, (inicio.custo + w * inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com f(n) = g(n) + w * h(n)
+    visitados = set()
+
+    while fila:
+        _, estado_atual = heapq.heappop(fila)  # Pega o estado com menor f(n)
+
+        if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
+            return estado_atual  # Retorna o estado vencedor
+
+        visitados.add(estado_atual)  # Marca o estado como visitado
+
+        for proximo_estado in gerar_proximos_estados(estado_atual):
+            if proximo_estado not in visitados:
+                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                f_n = proximo_estado.custo + w * proximo_estado.heuristica  # Calcula f(n) = g(n) + w * h(n)
+                heapq.heappush(fila, (f_n, proximo_estado))  # Adiciona o próximo estado à fila
+
+    return None  # Retorna None se nenhuma solução for encontrada
+
+def dfs(inicio):
+    """
+    Implementação da busca em profundidade (DFS) para encontrar a solução do jogo.
+    """
+    pilha = [inicio]  # Pilha para DFS
+    visitados = set()  # Conjunto para rastrear estados visitados
+
+    while pilha:
+        estado_atual = pilha.pop()  # Pega o próximo estado do topo da pilha
+
+        if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
+            return estado_atual  # Retorna o estado vencedor
+
+        visitados.add(estado_atual)  # Marca o estado como visitado
+
+        for proximo_estado in gerar_proximos_estados(estado_atual):
+            if proximo_estado not in visitados:
+                pilha.append(proximo_estado)  # Adiciona o próximo estado à pilha
+
+    return None  # Retorna None se nenhuma solução for encontrada
+
+def depth_limited_search(inicio, limite):
+    visitados = set()
+
+    def dls_recursivo(estado_atual, profundidade):
+        if estado_atual in visitados:
+            return None
+
+        visitados.add(estado_atual)
+
+        if verificar_vitoria(estado_atual.jogo):
+            print(f"Solução encontrada na profundidade: {estado_atual.profundidade}")
+            return estado_atual
+
+        if profundidade == 0:
+            return None
+
+        for proximo_estado in gerar_proximos_estados(estado_atual):
+            resultado = dls_recursivo(proximo_estado, profundidade - 1)
+            if resultado is not None:
+                return resultado
+
+        return None
+
+    return dls_recursivo(inicio, limite)
+
+def iterative_deepening_search(inicio, limite_maximo):
+    """
+    Implementação da busca em profundidade iterativa (IDS) para encontrar a solução do jogo.
+    :param inicio: Estado inicial do jogo.
+    :param limite_maximo: Limite máximo de profundidade para a busca.
+    :return: Estado vencedor ou None se nenhuma solução for encontrada.
+    """
+    for limite in range(1, limite_maximo + 1):  # Incrementa o limite de profundidade
+        print(f"Buscando com limite de profundidade: {limite}")
+        solucao = depth_limited_search(inicio, limite)  # Chama a busca limitada em profundidade
+        if solucao is not None:
+            return solucao  # Retorna a solução encontrada
+    return None  # Retorna None se nenhuma solução for encontrada dentro do limite máximo
 
 def obter_dados_do_estado_inicial(estado_inicial):
     """

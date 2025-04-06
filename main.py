@@ -56,12 +56,10 @@ except Exception as e:
 # Estado inicial
 estado_jogo = [
     
-    ["vermelho", "marrom", "azul", "verde"],
-    ["azul", "verde", "marrom", "vermelho"],
-    ["vermelho", "verde", "amarelo"],
-    ["azul", "amarelo", "marrom"],
-    ["amarelo"],
-    []
+    ['azul', 'vermelho'],
+['amarelo', 'azul'],
+['vermelho', 'amarelo'],[],[],[]
+
 
 ]
 
