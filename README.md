@@ -60,21 +60,12 @@ Para executar os benchmarks, use os seguintes comandos:
   python benchmark_bfs.py
   ```
 
-### 4. Personalize o Estado Inicial
-O estado inicial do jogo pode ser alterado diretamente nos scripts de benchmark. Por exemplo, no arquivo `benchmark_astar.py`:
-
-```python
-estado_inicial = Estado([
-    ["vermelho", "marrom", "azul", "verde"],
-    ["azul", "verde", "marrom", "vermelho"],
-    ["vermelho", "verde", "amarelo"],
-    ["azul", "amarelo", "marrom"],
-    ["amarelo"],
-    []
-])
+### 4. Para Jogar o Jogo
+Para jogar o jogo, execute o arquivo `main.py`:
+```bash
+python main.py
 ```
-
-Substitua as cores e a configuração dos galhos conforme necessário.
+Certifique-se de que o estado inicial e as configurações desejadas estão definidas no arquivo `main.py`.
 
 ### 5. Escolha o Algoritmo e a Heurística
 Cada script de benchmark é projetado para testar um algoritmo específico. Por exemplo:
