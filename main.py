@@ -55,12 +55,12 @@ except Exception as e:
 
 # Estado inicial
 estado_jogo = [
-    
-    ['azul', 'vermelho'],
-['amarelo', 'azul'],
-['vermelho', 'amarelo'],[],[],[]
-
-
+    ["vermelho", "marrom", "azul", "verde"],
+    ["azul", "verde", "marrom", "vermelho"],
+    ["vermelho", "verde", "amarelo"],
+    ["azul", "amarelo", "marrom"],
+    ["amarelo"],
+    []
 ]
 
 histórico_jogadas = [copy.deepcopy(estado_jogo)]
