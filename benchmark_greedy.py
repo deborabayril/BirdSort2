@@ -1,17 +1,17 @@
 import time
-from search import gulosa, Estado
+from search import gulosa, Estado, heuristica, heuristica_jogadas_restantes
 
-def medir_tempo_gulosa(estado_inicial):
+def medir_tempo_gulosa(estado_inicial, heuristica_func):
     """
-    Measure the time it takes to solve the game 10 times using Greedy Search.
+    Measure the time it takes to solve the game 10 times using Greedy Search with a specified heuristic.
     """
     total_time = 0
 
-    print("Iniciando o teste de desempenho da Busca Gulosa...")
+    print(f"Iniciando o teste de desempenho da Busca Gulosa com a heurística: {heuristica_func.__name__}...")
 
     for i in range(10):  # Run Greedy Search 10 times
         start_time = time.time()  # Record the start time
-        solucao = gulosa(estado_inicial)  # Solve the game using Greedy Search
+        solucao = gulosa(estado_inicial, heuristica_func=heuristica_func)  # Solve the game using Greedy Search
         end_time = time.time()  # Record the end time
 
         if solucao:
@@ -40,5 +40,8 @@ estado_inicial = Estado([
     []
 ])
 
-# Measure Greedy Search execution time
-medir_tempo_gulosa(estado_inicial)
+# Measure Greedy Search execution time with the default heuristic
+#medir_tempo_gulosa(estado_inicial, heuristica)
+
+# Measure Greedy Search execution time with the "jogadas restantes" heuristic
+medir_tempo_gulosa(estado_inicial, heuristica_jogadas_restantes)

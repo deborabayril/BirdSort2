@@ -1,17 +1,17 @@
 import time
-from search import a_star, Estado
+from search import a_star, Estado, heuristica, heuristica_jogadas_restantes
 
-def medir_tempo_a_star(estado_inicial):
+def medir_tempo_a_star(estado_inicial, heuristica_func):
     """
-    Measure the time it takes to solve the game 10 times using A* Search.
+    Measure the time it takes to solve the game 10 times using A* Search with a specified heuristic.
     """
     total_time = 0
 
-    print("Iniciando o teste de desempenho da Busca A*...")
+    print(f"Iniciando o teste de desempenho da Busca A* com a heurística: {heuristica_func.__name__}...")
 
     for i in range(10):  # Run A* Search 10 times
         start_time = time.time()  # Record the start time
-        solucao = a_star(estado_inicial)  # Solve the game using A* Search
+        solucao = a_star(estado_inicial, heuristica_func=heuristica_func)  # Solve the game using A* Search
         end_time = time.time()  # Record the end time
 
         if solucao:
@@ -40,5 +40,8 @@ estado_inicial = Estado([
     []
 ])
 
-# Measure A* Search execution time
-medir_tempo_a_star(estado_inicial)
+# Measure A* Search execution time with the default heuristic
+#medir_tempo_a_star(estado_inicial, heuristica)
+
+# Measure A* Search execution time with the "jogadas restantes" heuristic
+medir_tempo_a_star(estado_inicial, heuristica_jogadas_restantes)

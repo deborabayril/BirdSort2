@@ -36,6 +36,20 @@ def heuristica(estado):
     """
     return sum(1 for galho in estado.jogo for passaro in galho if passaro != galho[0])
 
+def heuristica_jogadas_restantes(estado):
+    """
+    Heurística baseada na quantidade de jogadas restantes para finalizar o jogo.
+    Conta o número de pássaros fora de lugar.
+    """
+    jogadas_restantes = 0
+
+    for galho in estado.jogo:
+        if len(galho) > 0:
+            cor_dominante = galho[0]  # Cor que deveria estar no galho
+            jogadas_restantes += sum(1 for passaro in galho if passaro != cor_dominante)
+
+    return jogadas_restantes
+
 # Função para verificar se o estado atual é uma vitória
 def verificar_vitoria(jogo):
     """
@@ -132,12 +146,14 @@ def custo_uniforme(inicio):
 
 
 # Busca Gulosa
-def gulosa(inicio):
+def gulosa(inicio, heuristica_func=heuristica):
     """
     Implementação da busca gulosa para encontrar a solução do jogo.
+    :param inicio: Estado inicial do jogo.
+    :param heuristica_func: Função heurística a ser usada.
     """
     fila = []
-    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    inicio.heuristica = heuristica_func(inicio)  # Calcula a heurística para o estado inicial
     heapq.heappush(fila, (inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com a heurística
     visitados = set()
 
@@ -151,18 +167,20 @@ def gulosa(inicio):
 
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                proximo_estado.heuristica = heuristica_func(proximo_estado)  # Calcula a heurística para o próximo estado
                 heapq.heappush(fila, (proximo_estado.heuristica, proximo_estado))  # Adiciona à fila
 
     return None  # Retorna None se nenhuma solução for encontrada
 
 # A* (A Estrela)
-def a_star(inicio):
+def a_star(inicio, heuristica_func=heuristica):
     """
     Implementação da busca A* para encontrar a solução do jogo.
+    :param inicio: Estado inicial do jogo.
+    :param heuristica_func: Função heurística a ser usada.
     """
     fila = []
-    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    inicio.heuristica = heuristica_func(inicio)  # Calcula a heurística para o estado inicial
     heapq.heappush(fila, (inicio.custo + inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com f(n) = g(n) + h(n)
     visitados = set()
 
@@ -176,21 +194,22 @@ def a_star(inicio):
 
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                proximo_estado.heuristica = heuristica_func(proximo_estado)  # Calcula a heurística para o próximo estado
                 f_n = proximo_estado.custo + proximo_estado.heuristica  # Calcula f(n) = g(n) + h(n)
                 heapq.heappush(fila, (f_n, proximo_estado))  # Adiciona o próximo estado à fila
 
     return None  # Retorna None se nenhuma solução for encontrada
 
-def weighted_a_star(inicio, w=1.5):
+def weighted_a_star(inicio, w, heuristica_func=heuristica):
     """
     Implementação da busca A* ponderada (Weighted A*) para encontrar a solução do jogo.
     :param inicio: Estado inicial do jogo.
     :param w: Peso aplicado à heurística (w >= 1).
+    :param heuristica_func: Função heurística a ser usada.
     :return: Estado vencedor ou None se nenhuma solução for encontrada.
     """
     fila = []
-    inicio.heuristica = heuristica(inicio)  # Calcula a heurística para o estado inicial
+    inicio.heuristica = heuristica_func(inicio)  # Calcula a heurística para o estado inicial
     heapq.heappush(fila, (inicio.custo + w * inicio.heuristica, inicio))  # Adiciona o estado inicial à fila com f(n) = g(n) + w * h(n)
     visitados = set()
 
@@ -204,7 +223,7 @@ def weighted_a_star(inicio, w=1.5):
 
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                proximo_estado.heuristica = heuristica(proximo_estado)  # Calcula a heurística para o próximo estado
+                proximo_estado.heuristica = heuristica_func(proximo_estado)  # Calcula a heurística para o próximo estado
                 f_n = proximo_estado.custo + w * proximo_estado.heuristica  # Calcula f(n) = g(n) + w * h(n)
                 heapq.heappush(fila, (f_n, proximo_estado))  # Adiciona o próximo estado à fila
 

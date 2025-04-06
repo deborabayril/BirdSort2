@@ -1,17 +1,17 @@
 import time
-from search import weighted_a_star, Estado
+from search import weighted_a_star, Estado, heuristica, heuristica_jogadas_restantes
 
-def medir_tempo_weighted_a_star(estado_inicial, w):
+def medir_tempo_weighted_a_star(estado_inicial, w, heuristica_func):
     """
-    Measure the time it takes to solve the game 10 times using Weighted A* Search.
+    Measure the time it takes to solve the game 10 times using Weighted A* Search with a specified heuristic.
     """
     total_time = 0
 
-    print(f"Iniciando o teste de desempenho da Busca A* Ponderada com peso {w}...")
+    print(f"Iniciando o teste de desempenho da Busca A* Ponderada com peso {w} e heurística: {heuristica_func.__name__}...")
 
     for i in range(10):  # Run Weighted A* Search 10 times
         start_time = time.time()  # Record the start time
-        solucao = weighted_a_star(estado_inicial, w)  # Solve the game using Weighted A* Search
+        solucao = weighted_a_star(estado_inicial, w, heuristica_func=heuristica_func)  # Solve the game using Weighted A* Search
         end_time = time.time()  # Record the end time
 
         if solucao:
@@ -41,7 +41,10 @@ estado_inicial = Estado([
 ])
 
 # Define the weight factor
-w = 9  # Adjust the weight factor as needed
+w = 1.9  # Adjust the weight factor as needed
 
-# Measure Weighted A* Search execution time
-medir_tempo_weighted_a_star(estado_inicial, w)
+# Measure Weighted A* Search execution time with the default heuristic
+#medir_tempo_weighted_a_star(estado_inicial, w, heuristica)
+
+# Measure Weighted A* Search execution time with the "jogadas restantes" heuristic
+medir_tempo_weighted_a_star(estado_inicial, w, heuristica_jogadas_restantes)
