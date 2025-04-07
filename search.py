@@ -81,8 +81,6 @@ def bfs(inicio):
     """
     Implementação da busca em largura (BFS) para encontrar a solução do jogo.
     """
-    from collections import deque
-
     fila = deque([inicio])  # Fila para BFS
     visitados = set()  # Conjunto para rastrear estados visitados
 
@@ -96,6 +94,7 @@ def bfs(inicio):
 
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
+                proximo_estado.movimento = estado_atual  # Track the parent state
                 fila.append(proximo_estado)  # Adiciona o próximo estado à fila
 
     return None  # Retorna None se nenhuma solução for encontrada
@@ -103,19 +102,16 @@ def bfs(inicio):
 # Função para gerar os próximos estados possíveis (ações)
 def gerar_proximos_estados(estado_atual):
     proximos_estados = []
-    jogo_atual = estado_atual.jogo
-
-    for i, galho_origem in enumerate(jogo_atual):
+    for i, galho_origem in enumerate(estado_atual.jogo):
         if not galho_origem:
-            continue  # Pula galhos vazios
-        passaro = galho_origem[-1]  # Pega o último pássaro do galho
-        for j, galho_destino in enumerate(jogo_atual):
+            continue  # Skip empty branches
+        passaro = galho_origem[-1]  # Get the last bird in the branch
+        for j, galho_destino in enumerate(estado_atual.jogo):
             if i != j and (len(galho_destino) < 4 and (not galho_destino or galho_destino[-1] == passaro)):
-                novo_jogo = [list(g) for g in jogo_atual]  # Cópia profunda do estado atual
-                novo_jogo[i].pop()  # Remove o pássaro do galho de origem
-                novo_jogo[j].append(passaro)  # Adiciona o pássaro ao galho de destino
-                estado_novo = Estado(novo_jogo, movimento=(i, j), custo=estado_atual.custo + 1, profundidade=estado_atual.profundidade + 1)
-                proximos_estados.append(estado_novo)
+                novo_estado = [list(g) for g in estado_atual.jogo]
+                novo_estado[i].pop()
+                novo_estado[j].append(passaro)
+                proximos_estados.append(Estado(novo_estado, (i, j), estado_atual.custo + 1))
     return proximos_estados
 
 
@@ -233,11 +229,11 @@ def dfs(inicio):
     """
     Implementação da busca em profundidade (DFS) para encontrar a solução do jogo.
     """
-    pilha = [inicio]  # Pilha para DFS
+    stack = [inicio]  # Pilha para DFS
     visitados = set()  # Conjunto para rastrear estados visitados
 
-    while pilha:
-        estado_atual = pilha.pop()  # Pega o próximo estado do topo da pilha
+    while stack:
+        estado_atual = stack.pop()  # Pega o próximo estado (último da pilha)
 
         if verificar_vitoria(estado_atual.jogo):  # Verifica se é um estado vencedor
             return estado_atual  # Retorna o estado vencedor
@@ -246,7 +242,8 @@ def dfs(inicio):
 
         for proximo_estado in gerar_proximos_estados(estado_atual):
             if proximo_estado not in visitados:
-                pilha.append(proximo_estado)  # Adiciona o próximo estado à pilha
+                proximo_estado.movimento = estado_atual  # Track the parent state
+                stack.append(proximo_estado)  # Adiciona o próximo estado à pilha
 
     return None  # Retorna None se nenhuma solução for encontrada
 

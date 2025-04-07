@@ -1,6 +1,7 @@
 import pygame
 import os
 import copy
+from search import bfs, dfs, Estado, gerar_proximos_estados  # Import BFS, DFS, Estado, and gerar_proximos_estados from search.py
 
 pygame.init()
 
@@ -70,8 +71,6 @@ pausado = False
 passaro_selecionado = None
 galho_selecionado = None
 
-
-
 # Ensure the victory flag is initialized
 vitoria_alcancada = False
 
@@ -88,6 +87,8 @@ static_surface.blit(fundo, (0, 0))  # Draw the background image
 
 # Draw static elements (buttons) on the static surface
 def desenhar_elementos_estaticos():
+    fonte = pygame.font.Font(None, 24)  # Font for button labels
+
     # First button (e.g., Undo)
     pygame.draw.rect(static_surface, BRANCO, (10, 10, 50, 50), border_radius=10)
     pygame.draw.line(static_surface, PRETO, (20, 35), (50, 35), 5)
@@ -100,6 +101,22 @@ def desenhar_elementos_estaticos():
     # Third button (Fullscreen button)
     pygame.draw.rect(static_surface, BRANCO, (LARGURA - 110, 10, 50, 50), border_radius=10)
     pygame.draw.rect(static_surface, PRETO, (LARGURA - 100, 20, 30, 30), 2)  # Square icon for fullscreen
+
+    # BFS button
+    pygame.draw.rect(static_surface, BRANCO, (LARGURA // 2 - 25, 10, 50, 50), border_radius=10)
+    pygame.draw.polygon(static_surface, PRETO, [
+        (LARGURA // 2 - 10, 20), (LARGURA // 2 + 10, 35), (LARGURA // 2 - 10, 50)
+    ])  # Triangle icon for BFS
+    texto_bfs = fonte.render("BFS", True, PRETO)
+    static_surface.blit(texto_bfs, (LARGURA // 2 - 15, 65))  # Label below the BFS button
+
+    # DFS button
+    pygame.draw.rect(static_surface, BRANCO, (LARGURA // 2 + 50, 10, 50, 50), border_radius=10)
+    pygame.draw.polygon(static_surface, PRETO, [
+        (LARGURA // 2 + 65, 20), (LARGURA // 2 + 85, 35), (LARGURA // 2 + 65, 50)
+    ])  # Triangle icon for DFS
+    texto_dfs = fonte.render("DFS", True, PRETO)
+    static_surface.blit(texto_dfs, (LARGURA // 2 + 60, 65))  # Label below the DFS button
 
 # Função para voltar uma jogada
 def voltar_uma_jogada():
@@ -174,8 +191,6 @@ def verificar_vitoria():
     num_cores, _ = obter_dados_do_estado_inicial(estado_jogo)
     todas_cores = set(imagens_passaros.keys())  # Todas as cores possíveis
     return len(cores_em_galhos.keys()) == num_cores
-
-
 
 # Função para calcular estrelas
 def calcular_estrelas():
@@ -318,10 +333,11 @@ def exibir_janela_vitoria(estrelas):
 
 # Classe para representar o estado do jogo
 class Estado:
-    def __init__(self, jogo, movimento=None, custo=0, heuristica=0):
+    def __init__(self, jogo, movimento=None, custo=0, profundidade=0, heuristica=0):
         self.jogo = jogo
         self.movimento = movimento
         self.custo = custo
+        self.profundidade = profundidade  # Add profundidade attribute
         self.heuristica = heuristica
 
     def __eq__(self, other):
@@ -329,22 +345,6 @@ class Estado:
 
     def __hash__(self):
         return hash(str(self.jogo))
-
-# Função para gerar próximos estados
-def gerar_proximos_estados(estado_atual):
-    proximos_estados = []
-    for i, galho_origem in enumerate(estado_atual.jogo):
-        if not galho_origem:
-            continue  # Skip empty branches
-        passaro = galho_origem[-1]  # Get the last bird in the branch
-        for j, galho_destino in enumerate(estado_atual.jogo):
-            if i != j and (len(galho_destino) < 4 and (not galho_destino or galho_destino[-1] == passaro)):
-                novo_estado = [list(g) for g in estado_atual.jogo]
-                novo_estado[i].pop()
-                novo_estado[j].append(passaro)
-                if novo_estado not in proximos_estados:  # Avoid duplicates
-                    proximos_estados.append(Estado(novo_estado, (i, j), estado_atual.custo + 1))
-    return proximos_estados
 
 # Função para obter dados do estado inicial
 def obter_dados_do_estado_inicial(estado_jogo):
@@ -362,11 +362,17 @@ def obter_dados_do_estado_inicial(estado_jogo):
     passaros_por_cor = list(cores.values())[0] if cores else 0  # Número de pássaros por cor (assume que todas as cores têm o mesmo número de pássaros)
     return num_cores, passaros_por_cor
 
+# Função para aplicar o estado final diretamente
+def aplicar_estado_final(estado_solucao):
+    """
+    Aplica o estado final diretamente sem mostrar os movimentos.
+    """
+    global estado_jogo
+    estado_jogo = estado_solucao.jogo  # Define o estado final do jogo
+
 # Loop principal do jogo
 # Draw static elements once
 desenhar_elementos_estaticos()
-
-
 
 while rodando:
     for evento in pygame.event.get():
@@ -389,6 +395,40 @@ while rodando:
             elif LARGURA - 60 < x < LARGURA - 10 and 10 < y < 60:
                 pausado = True
                 exibir_menu_pausa()  # Show the pause menu
+            # Check if the BFS button is clicked
+            elif LARGURA // 2 - 25 < x < LARGURA // 2 + 25 and 10 < y < 60:
+                estado_inicial = Estado(estado_jogo)  # Wrap the initial state in an Estado object
+                estado_solucao = bfs(estado_inicial)  # Call BFS from search.py
+                if estado_solucao:
+                    aplicar_estado_final(estado_solucao)  # Apply the final state directly
+                    histórico_jogadas.append(copy.deepcopy(estado_jogo))  # Save the solved state in the history
+                    print("Jogo resolvido com BFS!")
+                    desenhar_troncos()  # Draw the final state
+                    pygame.display.flip()  # Update the screen to show the final state
+                    if verificar_vitoria():
+                        estrelas = calcular_estrelas()
+                        nivel += 1
+                        vitoria_alcancada = True
+                        exibir_janela_vitoria(estrelas)  # Show the victory window
+                else:
+                    print("Não foi possível resolver o jogo com BFS.")
+            # Check if the DFS button is clicked
+            elif LARGURA // 2 + 50 < x < LARGURA // 2 + 100 and 10 < y < 60:
+                estado_inicial = Estado(estado_jogo)  # Wrap the initial state in an Estado object
+                estado_solucao = dfs(estado_inicial)  # Call DFS from search.py
+                if estado_solucao:
+                    aplicar_estado_final(estado_solucao)  # Apply the final state directly
+                    histórico_jogadas.append(copy.deepcopy(estado_jogo))  # Save the solved state in the history
+                    print("Jogo resolvido com DFS!")
+                    desenhar_troncos()  # Draw the final state
+                    pygame.display.flip()  # Update the screen to show the final state
+                    if verificar_vitoria():
+                        estrelas = calcular_estrelas()
+                        nivel += 1
+                        vitoria_alcancada = True
+                        exibir_janela_vitoria(estrelas)  # Show the victory window
+                else:
+                    print("Não foi possível resolver o jogo com DFS.")
             # Handle other clicks (e.g., bird movement) only if not paused
             if not pausado:
                 for i, (galho_x, galho_y) in enumerate(posicoes):
@@ -427,8 +467,6 @@ while rodando:
     # Skip game updates if paused
     if pausado:
         continue
-
-    
 
     # Reset the victory flag when the game state changes
     if not verificar_vitoria():
